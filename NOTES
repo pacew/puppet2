@@ -4,3 +4,7 @@ chips are
 LIS3DHTR
 KXTJ3
 
+
+LIS3DHTR has internal pullup on SA0, so the board only needs a jumper
+to ground
+
