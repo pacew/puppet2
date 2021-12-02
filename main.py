@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 
 import sys
+import time
 
 try:
     import smbus2
@@ -35,14 +36,14 @@ class Accel:
             buf = [1] * nbytes
 
         if self.trace:
-            print(f'read(0x{self.i2c_addr:x}, 0x{offset}, {nbytes}) => '
+            print(f'read(0x{self.i2c_addr:x}, 0x{offset}, 0x{nbytes:x}) => '
                   + ' '.join([hex(val) for val in buf]))
 
         return buf
 
     def write_byte(self, offset, val):
         if self.trace:
-            print(f'write(0x{self.i2c_addr:x}, 0x{offset}, 0x{val})')
+            print(f'write(0x{self.i2c_addr:x}, 0x{offset:x}, 0x{val:x})')
         if have_i2c:
             i2c_bus.write_byte_data(self.i2c_addr, offset, val)
 
@@ -58,7 +59,7 @@ class Accel_LIS3DH(Accel):
         # CTRL_REG1: ODR=200Hz, XYZ enable
         self.write_byte(0x20, 0x67)
 
-    def read_accel(self):
+    def xread_accel(self):
         def decode_s16(lo, hi):
             val = (hi << 8) | lo
             if val & 0x8000:
@@ -72,8 +73,30 @@ class Accel_LIS3DH(Accel):
         z = decode_s16(raw[4], raw[5])
         return x, y, z
 
+    def read_accel(self):
+        def decode_s16(lo, hi):
+            val = (hi << 8) | lo
+            if val & 0x8000:
+                val |= -1 << 16
+            return val
+
+        raw = []
+        for i in range(6):
+            raw.append(self.read_byte(0x28 + i))
+
+        x = decode_s16(raw[0], raw[1])
+        y = decode_s16(raw[2], raw[3])
+        z = decode_s16(raw[4], raw[5])
+        return x, y, z
+
+
 accel1 = Accel_LIS3DH(1, trace=True)
-print(accel1.read_accel())
+while True:
+    x, y, z = accel1.read_accel()
+    print(f'{x:6d} {y:6d} {z:6d}')
+    time.sleep(0.1)
+
+      
 
 
     
